@@ -70,42 +70,44 @@ def pregunta_01():
 
     """
 
+    import zipfile
     import pandas as pd
-    import glob
     import os
 
-    def loadData(inputPath):
+    with zipfile.ZipFile("files/input.zip", "r") as zip:
+        zip.extractall("files")
+    
+    files = []
+    for root, dirs, files_in_dir in os.walk("files/input"):
+        for file_name in files_in_dir:
+            if file_name.endswith(".txt"):
+                files.append(os.path.join(root, file_name))
 
-        data = []
+    test = {"phrase":[], "target":[]}
+    train = {"phrase":[], "target":[]}
 
-        for sentimentPath in glob.glob(os.path.join(inputPath, "*")):
-            if not os.path.isdir(sentimentPath):
-                continue
+    for file_path  in files:
+        with open(file_path , "r") as file:
+            phrase = file.read()
+        target = file_path.split(os.sep)[-2]
 
-            sentiment = os.path.basename(sentimentPath)
+        if "test" in file_path:
+            test["phrase"].append(phrase)
+            test["target"].append(target)
 
-            for filePath in glob.glob(os.path.join(sentimentPath, "*.txt")):
-                with open(filePath, "r") as file:
-                    phrase = file.read().strip()
-                    data.append({"phrase": phrase, "target": sentiment})
+        if "train" in file_path:
+            train["phrase"].append(phrase)
+            train["target"].append(target)
+    
+    test_df = pd.DataFrame(test)
+    train_df = pd.DataFrame(train)
 
-            df = pd.DataFrame(data)
-
-        return df
-
-    def createOutputDirectory(outputPath):
-        if os.path.exists(outputPath):
-            for file in glob.glob(f"{outputPath}/*"):
-                os.remove(file)
-            os.rmdir(outputPath)
-        os.makedirs(outputPath)
-
-    def saveData(df, outputPath):
-        df.to_csv(outputPath, index=False)
-
-    dfTrain = loadData("files/input/train")
-    dfTest = loadData("files/input/test")
-
-    createOutputDirectory("files/output")
-    saveData(dfTrain, "files/output/train_dataset.csv")
-    saveData(dfTest, "files/output/test_dataset.csv")
+    dir = "files/output"
+    if not os.path.exists(dir):
+        os.makedirs(dir)
+    
+    test_df.to_csv(os.path.join(dir, "test_dataset.csv"), index=False)
+    train_df.to_csv(os.path.join(dir, "train_dataset.csv"), index=False)
+ 
+if __name__ == "__main__":
+    pregunta_01()
